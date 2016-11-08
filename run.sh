@@ -2,12 +2,16 @@
 service tomcat7 start
 
 # link mounted source directory to opengrok
-ln -s /src $OPENGROK_INSTANCE_BASE/src
+if [ ! -e $OPENGROK_INSTANCE_BASE/src ]; then
+  ln -s /src $OPENGROK_INSTANCE_BASE/src
+fi
 
 # first-time index
-echo "** Running first-time indexing"
-cd /opengrok/bin
-./OpenGrok index
+if [ -n "$FORCE_REINDEX_ON_BOOT" -o ! -e $OPENGROK_INSTANCE_BASE/data/timestamp ]; then
+  echo "** Running first-time indexing"
+  cd /opengrok/bin
+  ./OpenGrok index
+fi
 
 # ... and we keep running the indexer to keep the container on
 echo "** Waiting for source updates..."
@@ -22,5 +26,6 @@ fi
 $INOTIFY_CMDLINE | while read f; do
   printf "*** %s\n" "$f"
   echo "*** Updating index"
+  cd /opengrok/bin
   ./OpenGrok index
 done
